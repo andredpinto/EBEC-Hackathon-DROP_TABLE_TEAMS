@@ -92,17 +92,17 @@ pipeline3 = Pipeline(steps=[
     ('clusterer', hdbscan_clustering)
 ])
 
-#print('Training model 3')
-#clusters = pipeline3.fit_predict(df3)
-#
-#df3['cluster_labels_hdbscan'] = clusters
-## Selecionar os clusters com anomalias
-#
-#t = df3.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
-#
-## Filter for clusters where mean temperature is below 0
-##filtered_t = t[t['temperature_2m '] < 0.15]
-#filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
+print('Training model 3')
+clusters = pipeline3.fit_predict(df3)
+
+df3['cluster_labels_hdbscan'] = clusters
+# Selecionar os clusters com anomalias
+
+t = df3.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
+
+# Filter for clusters where mean temperature is below 0
+#filtered_t = t[t['temperature_2m '] < 0.15]
+filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
 
 
 #print("Mean of 'temperature_2m ', 'rain' and 'dew_point_2m' for clusters with mean temperature below 0:")
