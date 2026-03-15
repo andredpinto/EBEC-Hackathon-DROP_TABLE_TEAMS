@@ -1,0 +1,9 @@
+# Separate majority and minority classes
+df_majority = df1[df1['rain '] == False]
+df_minority = df1[df1['rain '] == True]
+
+# Undersample majority class
+df_majority_undersampled = df_majority.sample(n=len(df_minority), random_state=42)
+
+# Concatenate minority class with undersampled majority class
+df2 = pandas.concat([df_majority_undersampled, df_minority])
