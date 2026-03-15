@@ -1,10 +1,9 @@
-import numpy as np
 import pandas as pd
 from pathlib import PurePath
+import sys
 from math import pi, sin, cos
 
-
-data_path = PurePath("..","data", "metherology_dataset.csv")
+data_path = sys.argv[1]
 df = pd.read_csv(data_path)
 
 # Remove duplicate rows
