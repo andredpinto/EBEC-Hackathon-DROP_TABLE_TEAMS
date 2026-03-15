@@ -166,6 +166,63 @@ y4 = df4['accidents']
 
 model4 = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=seed)
 
+# Level 5
+
+df5 = df.copy()
+df5['time'] = og_df['time'].copy()
+df5['time'] = pd.to_datetime(df5['time'])
+# Sort by location and time to ensure correct 'next day' values within each group
+df5 = df5.sort_values(by=['location', 'time'])
+# Group by location and get the 'rain ' value from the next entry
+# Using shift(-1) gets the value from the next row within each group
+df5['next_day_rain'] = df5.groupby('location')['rain '].shift(-24)
+df5['next_day_temperature'] = df5.groupby('location')['temperature_2m '].shift(-24)
+df5['next_day_cloud'] = df5.groupby('location')['cloud_cover '].shift(-24)
+df5 = df5.drop(['time',"location"],axis=1)
+# Drop rows where there is no 'next_day_rain' (i.e., the last entry for each location)
+df5 = df5.dropna()
+# Convert 'rain ' column to 0 or 1
+df5['rain '] = (df5['rain ']>0).astype(bool)
+df5["rain "] = df5["rain "].astype(int)
+
+cols_to_normalize = numeric_features + targets
+from sklearn.preprocessing import MinMaxScaler
+preprocessor5 = ColumnTransformer(
+    transformers=[
+        ('num', MinMaxScaler(), cols_to_normalize)
+    ],
+    remainder='passthrough')
+
+model51 = RandomForestClassifier(n_estimators=100, random_state=seed)
+pipeline51 = Pipeline(steps=[
+    ('preprocessor', preprocessor5),
+    ('classifier', model51)
+])
+
+model52 = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=42)
+pipeline52 = Pipeline(steps=[
+    ('preprocessor', preprocessor5),
+    ('classifier', model52)
+])
+
+pipeline53 = Pipeline(steps=[
+    ('preprocessor', preprocessor5),
+    ('classifier', model52)
+])
+
+# For rain prediction, undersample
+df_majority = df5[df5['next_day_rain'] == False]
+df_minority = df5[df5['next_day_rain'] == True]
+df_majority_undersampled = df_majority.sample(n=len(df_minority), random_state=seed)
+df51 = pd.concat([df_majority_undersampled, df_minority])
+X51 = df51.drop(['next_day_rain', 'next_day_temperature', 'next_day_cloud'], axis=1)
+y51 = df51['next_day_rain']
+
+X5 = df5.drop(['next_day_rain', 'next_day_temperature', 'next_day_cloud'], axis=1)
+y52 = df5['next_day_temperature']
+y53 = df5['next_day_cloud']
+
+
 # Training and saving models
 
 print("Training model 1...")
@@ -182,4 +239,14 @@ joblib.dump(pipeline3,'../models/model3.joblib')
 print("Training model 4..")
 model4.fit(X4, y4)
 joblib.dump(model4, '../models/model4.joblib')
+
+print("Training model 5.1..")
+pipeline51.fit(X51, y51)
+joblib.dump(pipeline51, '../models/model51.joblib')
+print("Training model 5.2..")
+pipeline52.fit(X5, y52)
+joblib.dump(pipeline52, '../models/model52.joblib')
+print("Training model 5.3..")
+pipeline53.fit(X5, y53)
+joblib.dump(pipeline53, '../models/model53.joblib')
 print('Done')
