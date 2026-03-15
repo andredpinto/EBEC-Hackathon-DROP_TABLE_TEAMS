@@ -1,43 +1,75 @@
-df5 = df1[['temperature_2m ', 'relative_humidity_2m',    # Onde df1 já tem as variáveis normalizadas
-       'dew_point_2m ', 'pressure_msl ']].copy()
+# Prepare df (weather data) for merging
+df_temp_weather = df.copy()
+df_temp_weather['time'] = pandas.to_datetime(df_temp_weather['time'])
+df_temp_weather['merge_date'] = df_temp_weather['time'].dt.date
 
+# Prepare adf (accident data) for merging
+df_temp_accidents = adf.copy()
+df_temp_accidents['time'] = pandas.to_datetime(df_temp_accidents['time'])
+df_temp_accidents['merge_date'] = df_temp_accidents['time'].dt.date
 
+# Merge df_temp_weather and df_temp_accidents to get hourly weather with daily accident counts
+# This temporary merged_df_hourly will serve as the source for aggregation.
+merged_df_hourly = pandas.merge(
+    df_temp_weather,
+    df_temp_accidents[['location', 'merge_date', 'accidents']],
+    on=['location', 'merge_date'],
+    how='left'
+)
 
+# Drop the temporary 'merge_date' column from the hourly merged_df if not needed for aggregation key
+# For daily aggregation, we will use 'time'.dt.date
+merged_df_hourly = merged_df_hourly.drop(columns=['merge_date'])
 
-import hdbscan
+# Ensure 'time' is datetime (it should be from previous step)
+merged_df_hourly['time'] = pandas.to_datetime(merged_df_hourly['time'])
 
-# Initialize HDBSCAN model
-# min_cluster_size: The minimum size of clusters that HDBSCAN should find.
-# min_samples: The number of samples in a neighborhood for a point to be considered as a core point.
-#              This includes the point itself.
-# metric: The metric to use when calculating distance between points.
+# Create a daily date key for grouping
+merged_df_hourly['daily_date'] = merged_df_hourly['time'].dt.date
 
-hdbscan_clustering = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=5, metric='euclidean')
+# Define aggregation functions for numerical columns
+# For weather features, taking the mean for continuous values.
+# For 'rain ', which is boolean, sum gives total hours it rained.
+# For 'accidents', it's already a daily value, so mean is appropriate (it should be constant per day).
 
-# Fit the model and predict clusters
-# HDBSCAN returns -1 for noise points
-clusters_hdbscan = hdbscan_clustering.fit_predict(df5)
+aggregation_dict = {}
+for col in merged_df_hourly.columns:
+    if col not in ['location', 'time', 'daily_date']:
+        if merged_df_hourly[col].dtype == 'bool':
+            aggregation_dict[col] = lambda x: x.sum().astype(int) # Count rainy hours
+        elif pandas.api.types.is_numeric_dtype(merged_df_hourly[col]):
+            aggregation_dict[col] = 'mean'
 
-# Add the cluster labels to df5
-df5['cluster_labels_hdbscan'] = clusters_hdbscan
+# Group by location and the daily date, then aggregate
+df6 = merged_df_hourly.groupby(['location', 'daily_date']).agg(aggregation_dict).reset_index()
+df6 = df6.dropna(subset=['accidents'])
 
-print("HDBSCAN Clustering applied. First 5 rows of df5 with new cluster labels:")
-print(df5.head())
+# Rename 'daily_date' to 'date' for clarity if preferred
+df6 = df6.rename(columns={'daily_date': 'date'})
 
-print("\nValue counts of the generated HDBSCAN clusters (cluster -1 indicates noise):")
-print(df5['cluster_labels_hdbscan'].value_counts())
+df6 = pandas.get_dummies(df6, columns=['location'], drop_first=True, dtype=int)
 
-print(f"\nNumber of estimated clusters (excluding noise): {len(np.unique(clusters_hdbscan)) - (1 if -1 in clusters_hdbscan else 0)}")
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
+df6 = df6.drop(columns=["date"],axis=1)
+x_train,x_test, y_train,y_test = train_test_split(df6.drop(["accidents"],axis = 1),df6["accidents"],test_size=0.3)
+# Initialize the XGBRegressor model
+xgb_model = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=42)
 
-# Selecionar os clusters com anomalias
+# Train the model
+xgb_model.fit(x_train_xgb, y_train)
 
-t = df5.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
+print("XGBoost Regressor model trained successfully!")
 
-# Filter for clusters where mean temperature is below 0
-#filtered_t = t[t['temperature_2m '] < 0.15]
-filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
+# Make predictions on the test set
+y_pred_xgb = xgb_model.predict(x_test_xgb)
 
+# Evaluate the model
+mae = mean_absolute_error(y_test, y_pred_xgb)
+mse = mean_squared_error(y_test, y_pred_xgb)
+r2 = r2_score(y_test, y_pred_xgb)
 
-#print("Mean of 'temperature_2m ', 'rain' and 'dew_point_2m' for clusters with mean temperature below 0:")
-print(filtered_t)
+print(f"\nMean Absolute Error (MAE): {mae:.4f}")
+print(f"Mean Squared Error (MSE): {mse:.4f}")
+print(f"R-squared (R2) Score: {r2:.4f}")
