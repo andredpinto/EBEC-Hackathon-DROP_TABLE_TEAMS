@@ -163,9 +163,9 @@ df4 = df4.drop('date', axis=1)
 
 X4 = df4.drop('accidents', axis=1)
 y4 = df4['accidents']
-print(X4)
 
-model4 = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=42)
+model4 = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=seed)
+
 # Training and saving models
 
 print("Training model 1...")
@@ -179,4 +179,7 @@ joblib.dump(pipeline2,'../models/model2.joblib')
 print("Saving model 3...")
 joblib.dump(pipeline3,'../models/model3.joblib')
 
+print("Training model 4..")
+model4.fit(X4, y4)
+joblib.dump(model4, '../models/model4.joblib')
 print('Done')
