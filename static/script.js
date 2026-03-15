@@ -67,17 +67,19 @@ async function predictRain() {
         const probabilityText = document.getElementById('probabilityText');
         
         if (result.rain_prediction) {
-            rainIcon.className = 'bi bi-cloud-rain';
+            // rainIcon.className = 'bi bi-cloud-rain';
             rainText.textContent = 'Raining';
             probabilityFill.classList.remove('bg-info', 'bg-warning');
             probabilityFill.classList.add('bg-info');
-            probabilityText.textContent = 'High probability of rain detected';
+            probabilityFill.style.width = '100%';
+            // probabilityText.textContent = 'High probability of rain detected';
         } else {
-            rainIcon.className = 'bi bi-sun';
+            // rainIcon.className = 'bi bi-sun';
             rainText.textContent = 'Not Raining';
             probabilityFill.classList.remove('bg-info', 'bg-warning');
             probabilityFill.classList.add('bg-warning');
-            probabilityText.textContent = 'Low probability of rain';
+            probabilityFill.style.width = '100%';
+            // probabilityText.textContent = 'Low probability of rain';
         }
         
     } catch (error) {
