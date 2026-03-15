@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rain Prediction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9aIt2n6CfsVuTVFUSsBaNeAopJFFVYgNtQbDWZlbqNqp4gN4gPgpXJxZg==">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 mb-3"><i class="bi bi-cloud-rain"></i> Rain Prediction System</h1>
+        <p class="lead text-white-50">Level 1: Machine Learning Rain Classification</p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4"><i class="bi bi-graph-up"></i> Prediction Result</h2>
+                    <div class="text-center mb-3" id="rainPrediction">
+                        <span class="display-1" id="rainIcon"><i class="bi bi-cloud"></i></span>
+                        <span class="fs-2 fw-bold" id="rainText">Adjust parameters to predict</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="probabilityFill" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p class="text-center mb-4" id="probabilityText">Ready to predict</p>
+
+                    <div class="d-grid gap-2 d-md-block">
+                        <button onclick="setPreset('rainy')" class="btn btn-primary btn-lg"><i class="bi bi-cloud-rain"></i> Rainy</button>
+                        <button onclick="setPreset('sunny')" class="btn btn-warning btn-lg"><i class="bi bi-sun"></i> Sunny</button>
+                        <button onclick="setPreset('stormy')" class="btn btn-danger btn-lg"><i class="bi bi-lightning"></i> Stormy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h2 class="card-title mb-4"><i class="bi bi-gear"></i> Weather Parameters</h2>
+                    <p class="text-muted mb-4">Move sliders to adjust weather conditions - prediction updates in real-time</p>
+
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Slider</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Temperature (°C)</td>
+                                <td><input type="range" id="temperature_2m" class="form-range" min="-10" max="40" step="0.1" value="15"></td>
+                                <td class="fw-bold text-primary" id="temperature_2m_value">15.0°C</td>
+                            </tr>
+                            <tr>
+                                <td>Relative Humidity (%)</td>
+                                <td><input type="range" id="relative_humidity_2m" class="form-range" min="0" max="100" step="1" value="75"></td>
+                                <td class="fw-bold text-primary" id="relative_humidity_2m_value">75%</td>
+                            </tr>
+                            <tr>
+                                <td>Dew Point (°C)</td>
+                                <td><input type="range" id="dew_point_2m" class="form-range" min="-10" max="25" step="0.1" value="10.5"></td>
+                                <td class="fw-bold text-primary" id="dew_point_2m_value">10.5°C</td>
+                            </tr>
+                            <tr>
+                                <td>Cloud Cover (%)</td>
+                                <td><input type="range" id="cloud_cover" class="form-range" min="0" max="100" step="1" value="50"></td>
+                                <td class="fw-bold text-primary" id="cloud_cover_value">50%</td>
+                            </tr>
+                            <tr>
+                                <td>Cloud Cover Low (%)</td>
+                                <td><input type="range" id="cloud_cover_low" class="form-range" min="0" max="100" step="1" value="30"></td>
+                                <td class="fw-bold text-primary" id="cloud_cover_low_value">30%</td>
+                            </tr>
+                            <tr>
+                                <td>Cloud Cover Mid (%)</td>
+                                <td><input type="range" id="cloud_cover_mid" class="form-range" min="0" max="100" step="1" value="40"></td>
+                                <td class="fw-bold text-primary" id="cloud_cover_mid_value">40%</td>
+                            </tr>
+                            <tr>
+                                <td>Cloud Cover High (%)</td>
+                                <td><input type="range" id="cloud_cover_highh" class="form-range" min="0" max="100" step="1" value="25"></td>
+                                <td class="fw-bold text-primary" id="cloud_cover_highh_value">25%</td>
+                            </tr>
+                            <tr>
+                                <td>Wind Speed 10m (m/s)</td>
+                                <td><input type="range" id="wind_speed_10m" class="form-range" min="0" max="30" step="0.1" value="8.5"></td>
+                                <td class="fw-bold text-primary" id="wind_speed_10m_value">8.5 m/s</td>
+                            </tr>
+                            <tr>
+                                <td>Wind Direction 10m (°)</td>
+                                <td><input type="range" id="wind_direction_10m" class="form-range" min="0" max="360" step="1" value="180"></td>
+                                <td class="fw-bold text-primary" id="wind_direction_10m_value">180°</td>
+                            </tr>
+                            <tr>
+                                <td>Wind Gusts 10m (m/s)</td>
+                                <td><input type="range" id="wind_gusts_10m" class="form-range" min="0" max="50" step="0.1" value="15"></td>
+                                <td class="fw-bold text-primary" id="wind_gusts_10m_value">15.0 m/s</td>
+                            </tr>
+                            <tr>
+                                <td>Wind Direction 100m (°)</td>
+                                <td><input type="range" id="wind_direction_100m" class="form-range" min="0" max="360" step="1" value="170"></td>
+                                <td class="fw-bold text-primary" id="wind_direction_100m_value">170°</td>
+                            </tr>
+                            <tr>
+                                <td>Wind Speed 100m (m/s)</td>
+                                <td><input type="range" id="wind_speed_100m" class="form-range" min="0" max="40" step="0.1" value="12"></td>
+                                <td class="fw-bold text-primary" id="wind_speed_100m_value">12.0 m/s</td>
+                            </tr>
+                            <tr>
+                                <td>Pressure MSL (hPa)</td>
+                                <td><input type="range" id="pressure_msl" class="form-range" min="980" max="1040" step="0.1" value="1013"></td>
+                                <td class="fw-bold text-primary" id="pressure_msl_value">1013.0 hPa</td>
+                            </tr>
+                            <tr>
+                                <td>Surface Pressure (hPa)</td>
+                                <td><input type="range" id="surface_pressure" class="form-range" min="980" max="1040" step="0.1" value="1012"></td>
+                                <td class="fw-bold text-primary" id="surface_pressure_value">1012.0 hPa</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <h2 class="card-title mb-4"><i class="bi bi-info-circle"></i> About This System</h2>
+            <p class="text-muted mb-3">This rain prediction system uses a Random Forest classifier trained on historical meteorological data to predict whether it will rain based on current weather conditions.</p>
+
+            <div class="card bg-light border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-cpu"></i> Model Details</h4>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Algorithm:</strong> Random Forest Classifier</li>
+                    <li class="list-group-item"><strong>Features:</strong> 14 weather parameters</li>
+                    <li class="list-group-item"><strong>Training:</strong> Balanced dataset with undersampling</li>
+                    <li class="list-group-item"><strong>Evaluation:</strong> F1-score optimized</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-white-75 py-4 mt-5">
+        <p>Rain Prediction System | Level 1 Classification | EBEC Hackathon</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76cDxeOvaAnOQwhaQzPcAY9I9sQITBfIqkxFWk6hmo" crossorigin="anonymous"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
