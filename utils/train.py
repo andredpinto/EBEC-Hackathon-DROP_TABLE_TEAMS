@@ -75,6 +75,39 @@ pipeline2 = Pipeline(steps=[
     ('regressor', model2)
 ])
 
+# Level 3
+prediction_columns = ['temperature_2m ', 'relative_humidity_2m', 'dew_point_2m ', 'pressure_msl ']
+df3 = df[prediction_columns].copy()
+
+preprocessor3 = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), prediction_columns),
+    ])
+
+import hdbscan
+
+hdbscan_clustering = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=5, metric='euclidean')
+
+pipeline3 = Pipeline(steps=[
+    ('preprocessor', preprocessor3),
+    ('clusterer', hdbscan_clustering)
+])
+
+print('Training model 3')
+clusters = pipeline3.fit_predict(df3)
+
+df3['cluster_labels_hdbscan'] = clusters
+# Selecionar os clusters com anomalias
+
+t = df3.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
+
+# Filter for clusters where mean temperature is below 0
+#filtered_t = t[t['temperature_2m '] < 0.15]
+filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
+
+
+#print("Mean of 'temperature_2m ', 'rain' and 'dew_point_2m' for clusters with mean temperature below 0:")
+#print(filtered_t)
 
 # Training and saving models
 
@@ -85,5 +118,8 @@ joblib.dump(pipeline1,'../models/model1.joblib')
 print("Training model 2...")
 pipeline2.fit(X2, y2)
 joblib.dump(pipeline2,'../models/model2.joblib')
+
+print("Saving model 3...")
+joblib.dump(pipeline3,'../models/model3.joblib')
 
 print('Done')
