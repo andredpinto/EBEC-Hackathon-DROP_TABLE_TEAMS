@@ -7,6 +7,18 @@ from math import pi, sin, cos
 data_path = PurePath("..","data", "metherology_dataset.csv")
 df = pd.read_csv(data_path)
 
+# Remove duplicate rows
+df = df.drop_duplicates()
+
+# Define key meteorological columns to check for data quality
+cols_to_check = ['temperature_2m', 'dew_point_2m', 'cloud_cover', 'wind_speed_10m', 'pressure_msl']
+cols_to_fix = [col for col in cols_to_check if col in df.columns]
+
+# Handle missing values
+# If nulls are found, impute them using the column mean
+if df[cols_to_fix].isnull().sum().sum() > 0:
+    df[cols_to_fix] = df[cols_to_fix].fillna(df[cols_to_fix].mean())
+
 # Converting time (date) to correct format
 df['time'] = pd.to_datetime(df['time'])
 
