@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level 4 Accidents Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="container py-5">
+    <div class="d-flex gap-2 mb-3">
+        <a href="/level4" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+        <a href="/level4/download/{{ filename }}" class="btn btn-success"><i class="bi bi-download"></i> Download CSV with Predictions</a>
+    </div>
+    <h1 class="display-5 mb-4"><i class="bi bi-activity"></i> Level 4: Daily Accidents Prediction</h1>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Predictions Per Day</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            {% for column in columns %}
+                            <th>{{ column }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            {% for column in columns %}
+                            {% if column == 'accidents_prediction' %}
+                            <td class="fw-bold text-danger">{{ row[column] }}</td>
+                            {% elif column == 'cars_needed' %}
+                            <td class="fw-bold text-primary">{{ row[column] }}</td>
+                            {% else %}
+                            <td>{{ row[column] }}</td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
