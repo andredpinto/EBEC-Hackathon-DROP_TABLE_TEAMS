@@ -16,6 +16,9 @@ templates = Jinja2Templates(directory="templates")
 pipeline1 = joblib.load('models/model1.joblib')
 pipeline2 = joblib.load('models/model2.joblib')
 model4 = joblib.load('models/model4.joblib')
+model51 = joblib.load('models/model51.joblib')
+model52 = joblib.load('models/model52.joblib')
+model53 = joblib.load('models/model53.joblib')
 
 class RainPredictionData(BaseModel):
     relative_humidity_2m: float
@@ -478,3 +481,98 @@ async def level4_download(filename: str):
 @app.get("/level4")
 async def level4_interface():
     return FileResponse('static/level4.html')
+
+# ---------------- Level 5 (Next-day predictions: rain, temperature, clouds) ----------------
+
+@app.get("/level5")
+async def level5_interface():
+    return FileResponse('static/level5.html')
+
+@app.post("/level5/upload")
+async def level5_upload(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+
+        unique = str(uuid.uuid4()) + '_' + file.filename
+        raw_path = os.path.join('uploads', unique)
+        os.makedirs('uploads', exist_ok=True)
+        with open(raw_path, 'wb') as f:
+            f.write(contents)
+
+        # Preprocess to add cyclical features (day/hour) and clean data
+        proc_name = 'proc_level5_' + unique
+        proc_path = os.path.join('uploads', proc_name)
+        pre_process(raw_path, proc_path)
+
+        df = pd.read_csv(proc_path)
+
+        # Build inputs for each model based on its expected features
+        def predict_with(model, out_col_name):
+            feats = list(getattr(model, 'feature_names_in_', []))
+            # Add any missing feature as 0 (useful for one-hot cols if any)
+            for c in feats:
+                if c not in df.columns:
+                    df[c] = 0
+            X = df[feats].copy()
+            preds = model.predict(X)
+            df[out_col_name] = preds
+
+        # 5.1 Rain (classification or probability -> coerce to bool/int)
+        predict_with(model51, 'next_day_rain_pred_raw')
+        # Ensure boolean-ish output
+        df['next_day_rain_pred'] = df['next_day_rain_pred_raw'].astype(float).round().clip(lower=0).astype(int)
+        df = df.drop(columns=['next_day_rain_pred_raw'])
+
+        # 5.2 Temperature (Celsius)
+        predict_with(model52, 'next_day_temp_c')
+        # 5.3 Cloud cover (%)
+        predict_with(model53, 'next_day_cloud_cover')
+
+        df.to_csv(proc_path, index=False)
+        return {"filename": proc_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/level5/results")
+async def level5_results(filename: str, request: Request):
+    try:
+        path = os.path.join('uploads', filename)
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="File not found")
+        df = pd.read_csv(path)
+
+        # Choose a compact subset to display if present
+        display_cols = []
+        for col in [
+            'location', 'day_sin', 'day_cos', 'hour_sin', 'hour_cos',
+            'next_day_rain_pred', 'next_day_temp_c', 'next_day_cloud_cover']:
+            if col in df.columns:
+                display_cols.append(col)
+        if not display_cols:
+            display_cols = df.columns.tolist()
+        rows = [dict(r) for _, r in df[display_cols].iterrows()]
+
+        return templates.TemplateResponse("level5_results.html", {
+            "request": request,
+            "filename": filename,
+            "columns": display_cols,
+            "rows": rows
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/level5/download/{filename}")
+async def level5_download(filename: str):
+    try:
+        path = os.path.join('uploads', filename)
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(path=path, filename=f"level5_predictions_{filename}", media_type='text/csv')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
