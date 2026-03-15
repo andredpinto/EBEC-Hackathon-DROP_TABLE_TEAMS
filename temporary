@@ -1,9 +1,43 @@
-# Separate majority and minority classes
-df_majority = df1[df1['rain '] == False]
-df_minority = df1[df1['rain '] == True]
+df5 = df1[['temperature_2m ', 'relative_humidity_2m',    # Onde df1 já tem as variáveis normalizadas
+       'dew_point_2m ', 'pressure_msl ']].copy()
 
-# Undersample majority class
-df_majority_undersampled = df_majority.sample(n=len(df_minority), random_state=42)
 
-# Concatenate minority class with undersampled majority class
-df2 = pandas.concat([df_majority_undersampled, df_minority])
+
+
+import hdbscan
+
+# Initialize HDBSCAN model
+# min_cluster_size: The minimum size of clusters that HDBSCAN should find.
+# min_samples: The number of samples in a neighborhood for a point to be considered as a core point.
+#              This includes the point itself.
+# metric: The metric to use when calculating distance between points.
+
+hdbscan_clustering = hdbscan.HDBSCAN(min_cluster_size=5, min_samples=5, metric='euclidean')
+
+# Fit the model and predict clusters
+# HDBSCAN returns -1 for noise points
+clusters_hdbscan = hdbscan_clustering.fit_predict(df5)
+
+# Add the cluster labels to df5
+df5['cluster_labels_hdbscan'] = clusters_hdbscan
+
+print("HDBSCAN Clustering applied. First 5 rows of df5 with new cluster labels:")
+print(df5.head())
+
+print("\nValue counts of the generated HDBSCAN clusters (cluster -1 indicates noise):")
+print(df5['cluster_labels_hdbscan'].value_counts())
+
+print(f"\nNumber of estimated clusters (excluding noise): {len(np.unique(clusters_hdbscan)) - (1 if -1 in clusters_hdbscan else 0)}")
+
+
+# Selecionar os clusters com anomalias
+
+t = df5.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
+
+# Filter for clusters where mean temperature is below 0
+#filtered_t = t[t['temperature_2m '] < 0.15]
+filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
+
+
+#print("Mean of 'temperature_2m ', 'rain' and 'dew_point_2m' for clusters with mean temperature below 0:")
+print(filtered_t)
