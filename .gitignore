@@ -1,2 +1,8 @@
 .ipynb_checkpoints
 guide.txt
+venv/
+
+*.pdf
+.tool-versions
+__pycache__/*
+uploads/

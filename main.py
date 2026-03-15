@@ -15,6 +15,7 @@ templates = Jinja2Templates(directory="templates")
 
 pipeline1 = joblib.load('models/model1.joblib')
 pipeline2 = joblib.load('models/model2.joblib')
+model4 = joblib.load('models/model4.joblib')
 
 class RainPredictionData(BaseModel):
     relative_humidity_2m: float
@@ -356,3 +357,124 @@ async def temperature_interface():
     return FileResponse('static/temperature.html')
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ---------------- Level 4 (Daily accidents) ----------------
+
+@app.post("/level4/upload")
+async def level4_upload(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+
+        unique = str(uuid.uuid4()) + '_' + file.filename
+        raw_path = os.path.join('uploads', unique)
+        os.makedirs('uploads', exist_ok=True)
+        with open(raw_path, 'wb') as f:
+            f.write(contents)
+
+        # Read raw hourly data
+        df = pd.read_csv(raw_path)
+
+        required_base = [
+            'location', 'time',
+            'temperature_2m ', 'relative_humidity_2m', 'dew_point_2m ', 'rain ',
+            'cloud_cover ', 'cloud_cover_low ', 'cloud_cover_mid ', 'cloud_cover_highh',
+            'wind_speed_10m ', 'wind_direction_10m ', 'wind_gusts_10m ',
+            'wind_direction_100m ', 'wind_speed_100m ',
+            'pressure_msl ', 'surface_pressure '
+        ]
+
+        missing = [c for c in ['location', 'time'] if c not in df.columns]
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Missing required columns: {missing}")
+
+        # Parse time and get date
+        df['time'] = pd.to_datetime(df['time'])
+        df['date'] = df['time'].dt.date
+
+        # Keep only known numeric feature columns that exist
+        numeric_cols = [c for c in required_base if c in df.columns and c not in ['location', 'time']]
+
+        # Aggregate to daily by mean across available hours (works even with <24 rows/day)
+        agg_map = {c: 'mean' for c in numeric_cols}
+        daily = df.groupby(['location', 'date'], as_index=False).agg(agg_map)
+        # Optional: keep a count of hourly rows per day (not required for predictions)
+        counts = df.groupby(['location', 'date']).size().reset_index(name='rows')
+        daily = daily.merge(counts, on=['location', 'date'], how='left')
+        if daily.empty:
+            raise HTTPException(status_code=400, detail="No daily aggregates could be computed from the provided data.")
+
+        # One-hot encode location to match model features
+        daily_ohe = pd.get_dummies(daily, columns=['location'], drop_first=False, dtype=int)
+
+        # Ensure all expected features exist
+        expected_features = list(getattr(model4, 'feature_names_in_', []))
+        # Build the input X by adding missing columns as 0
+        for feat in expected_features:
+            if feat not in daily_ohe.columns:
+                daily_ohe[feat] = 0
+
+        X = daily_ohe[expected_features].copy()
+        preds = model4.predict(X)
+        # Round to non-negative integers
+        daily['accidents_prediction'] = pd.Series(preds).round().clip(lower=0).astype(int)
+        # Derived resource planning column
+        daily['cars_needed'] = (daily['accidents_prediction'] * 3).astype(int)
+        # Keep 'rows' to show how many hourly records were used (informational)
+
+        proc_name = 'proc_level4_' + unique
+        proc_path = os.path.join('uploads', proc_name)
+        # Save only readable daily data with predictions
+        daily.to_csv(proc_path, index=False)
+
+        return {"filename": proc_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/level4/results")
+async def level4_results(filename: str, request: Request):
+    try:
+        path = os.path.join('uploads', filename)
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="File not found")
+        df = pd.read_csv(path)
+
+        # Prepare rows/columns for template
+        columns = []
+        for col in ['date', 'location', 'accidents_prediction', 'cars_needed']:
+            if col in df.columns:
+                columns.append(col)
+        if not columns:
+            # Fallback: just show whatever exists
+            columns = df.columns.tolist()
+        rows = [dict(r) for _, r in df[columns].iterrows()]
+
+        return templates.TemplateResponse("level4_results.html", {
+            "request": request,
+            "filename": filename,
+            "columns": columns,
+            "rows": rows
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/level4/download/{filename}")
+async def level4_download(filename: str):
+    try:
+        path = os.path.join('uploads', filename)
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(path=path, filename=f"level4_accidents_{filename}", media_type='text/csv')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+# UI route for Level 4
+@app.get("/level4")
+async def level4_interface():
+    return FileResponse('static/level4.html')
