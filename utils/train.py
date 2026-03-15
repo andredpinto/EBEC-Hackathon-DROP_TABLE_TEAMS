@@ -9,7 +9,6 @@ seed = 42   # use this variable for random state
 
 data_path = PurePath('..', 'data', 'meth_data_proc.csv')
 df = pd.read_csv(data_path)
-print(df)
 
 # Feature types for preprocessing
 # These will be encoded with sin and cos
@@ -93,22 +92,80 @@ pipeline3 = Pipeline(steps=[
     ('clusterer', hdbscan_clustering)
 ])
 
-print('Training model 3')
-clusters = pipeline3.fit_predict(df3)
-
-df3['cluster_labels_hdbscan'] = clusters
-# Selecionar os clusters com anomalias
-
-t = df3.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
-
-# Filter for clusters where mean temperature is below 0
-#filtered_t = t[t['temperature_2m '] < 0.15]
-filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
+#print('Training model 3')
+#clusters = pipeline3.fit_predict(df3)
+#
+#df3['cluster_labels_hdbscan'] = clusters
+## Selecionar os clusters com anomalias
+#
+#t = df3.groupby('cluster_labels_hdbscan')[['temperature_2m ', "relative_humidity_2m","dew_point_2m "]].mean()
+#
+## Filter for clusters where mean temperature is below 0
+##filtered_t = t[t['temperature_2m '] < 0.15]
+#filtered_t = t[t['dew_point_2m '] < 0.1][t["temperature_2m "]<0.2]
 
 
 #print("Mean of 'temperature_2m ', 'rain' and 'dew_point_2m' for clusters with mean temperature below 0:")
 #print(filtered_t)
 
+# Level 4
+accidents_path = PurePath('..', 'data', 'accidents_dataset.csv')
+accid_df = pd.read_csv(accidents_path)
+og_data_path = PurePath('..', 'data', 'metherology_dataset.csv')
+og_df = pd.read_csv(og_data_path)
+
+og_df['time'] = pd.to_datetime(og_df['time'])
+og_df['merge_date'] = og_df['time'].dt.date
+accid_df['time'] = pd.to_datetime(accid_df['time'])
+accid_df['merge_date'] = accid_df['time'].dt.date
+# Merge df_temp_weather and df_temp_accidents to get hourly weather with daily accident counts
+# This temporary merged_df_hourly will serve as the source for aggregation.
+merged_df_hourly = pd.merge(
+    og_df,
+    accid_df[['location', 'merge_date', 'accidents']],
+    on=['location', 'merge_date'],
+    how='left'
+)
+
+# Drop the temporary 'merge_date' column from the hourly merged_df if not needed for aggregation key
+# For daily aggregation, we will use 'time'.dt.date
+merged_df_hourly = merged_df_hourly.drop(columns=['merge_date'])
+
+# Ensure 'time' is datetime (it should be from previous step)
+merged_df_hourly['time'] = pd.to_datetime(merged_df_hourly['time'])
+
+# Create a daily date key for grouping
+merged_df_hourly['daily_date'] = merged_df_hourly['time'].dt.date
+
+# Define aggregation functions for numerical columns
+# For weather features, taking the mean for continuous values.
+# For 'rain ', which is boolean, sum gives total hours it rained.
+# For 'accidents', it's already a daily value, so mean is appropriate (it should be constant per day).
+
+aggregation_dict = {}
+for col in merged_df_hourly.columns:
+    if col not in ['location', 'time', 'daily_date']:
+        if merged_df_hourly[col].dtype == 'bool':
+            aggregation_dict[col] = lambda x: x.sum().astype(int) # Count rainy hours
+        elif pd.api.types.is_numeric_dtype(merged_df_hourly[col]):
+            aggregation_dict[col] = 'mean'
+
+# Group by location and the daily date, then aggregate
+df4 = merged_df_hourly.groupby(['location', 'daily_date']).agg(aggregation_dict).reset_index()
+df4 = df4.dropna(subset=['accidents'])
+
+# Rename 'daily_date' to 'date' for clarity if preferred
+df4 = df4.rename(columns={'daily_date': 'date'})
+
+df4 = pd.get_dummies(df4, columns=['location'], drop_first=True, dtype=int)
+
+df4 = df4.drop('date', axis=1)
+
+X4 = df4.drop('accidents', axis=1)
+y4 = df4['accidents']
+print(X4)
+
+model4 = XGBRegressor(objective='reg:squarederror', n_estimators=100, random_state=42)
 # Training and saving models
 
 print("Training model 1...")
