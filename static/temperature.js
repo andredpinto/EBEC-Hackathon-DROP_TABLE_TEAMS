@@ -53,6 +53,8 @@ function updateTempSliderDisplays() {
                 display.textContent = value.toFixed(1) + ' m/s';
             } else if (id === 'rain') {
                 display.textContent = value.toFixed(1) + ' mm';
+            } else if (id.includes('dew')) {
+                display.textContent = value.toFixed(1) + '°C';
             }
         }
     });
