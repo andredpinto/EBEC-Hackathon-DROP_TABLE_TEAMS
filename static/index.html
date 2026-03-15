@@ -8,67 +8,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="container py-5">
-    <div class="card shadow">
-        <div class="card-body text-center py-5">
-            <h1 class="display-3 mb-4"><i class="bi bi-cloud-sun"></i> Weather Prediction System</h1>
-            <p class="lead mb-4">Welcome to Weather Prediction System</p>
-            <p class="text-muted">Choose a prediction model to get started</p>
-            <div class="d-grid gap-3 col-12 mx-auto" style="max-width: 800px;">
-                <a href="/rain" class="btn btn-primary btn-lg btn-block">
-                    <i class="bi bi-cloud-rain fs-4"></i>
-                    <span class="fs-5">Rain Prediction</span>
-                    <small class="d-block text-white-50 mt-2">Level 1 - Classification</small>
-                </a>
-                <a href="/temperature" class="btn btn-warning btn-lg btn-block">
-                    <i class="bi bi-thermometer fs-4"></i>
-                    <span class="fs-5">Temperature Prediction</span>
-                    <small class="d-block text-white-50 mt-2">Level 2 - Forecasting</small>
-                </a>
-            </div>
-        </div>
+<body class="container py-5 text-center">
+    <h1 class="display-3 mb-4"><i class="bi bi-cloud-sun"></i> Weather Prediction System</h1>
+    <p class="lead mb-5">Choose a prediction model to get started</p>
+    
+    <div class="d-grid gap-4 col-12 mx-auto" style="max-width: 600px;">
+        <a href="/rain" class="btn btn-primary btn-lg">
+            <i class="bi bi-cloud-rain"></i> Rain Prediction
+        </a>
+        <a href="/temperature" class="btn btn-warning btn-lg">
+            <i class="bi bi-thermometer"></i> Temperature Prediction
+        </a>
     </div>
-
-    <div class="card shadow">
-        <div class="card-body">
-            <h2 class="card-title mb-4"><i class="bi bi-info-circle"></i> About This System</h2>
-            <p>This weather prediction system uses machine learning models trained on historical meteorological data to provide accurate forecasts.</p>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="card border-primary mb-3">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-cloud-rain"></i> Rain Prediction (Level 1)</h5>
-                        </div>
-                        <div class="card-body">
-                            <p><strong>Model:</strong> Random Forest Classifier</p>
-                            <p><strong>Features:</strong> 14 weather parameters</p>
-                            <p><strong>Purpose:</strong> Binary rain/no-rain classification</p>
-                            <a href="/rain" class="btn btn-outline-primary btn-sm">Go to Rain Prediction</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card border-warning mb-3">
-                        <div class="card-header bg-warning">
-                            <h5 class="mb-0"><i class="bi bi-thermometer"></i> Temperature Prediction (Level 2)</h5>
-                        </div>
-                        <div class="card-body">
-                            <p><strong>Model:</strong> XGBoost Regressor</p>
-                            <p><strong>Features:</strong> 19 parameters with temporal features</p>
-                            <p><strong>Purpose:</strong> Temperature forecasting</p>
-                            <a href="/temperature" class="btn btn-outline-warning btn-sm">Go to Temperature Prediction</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="text-center text-white-50 py-4 mt-5">
-        <p>Weather Prediction System | EBEC Hackathon</p>
-        <small class="d-block">Powered by Machine Learning</small>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76cDxeOvaAnOQwhaQzPcAY9I9sQITBfIqkxFWk6hmo" crossorigin="anonymous"></script>
 </body>
 </html>
