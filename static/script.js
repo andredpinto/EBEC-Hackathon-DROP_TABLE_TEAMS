@@ -183,3 +183,34 @@ function setPreset(type) {
 document.addEventListener('DOMContentLoaded', function() {
     initializeSliders();
 });
+
+async function uploadCSV() {
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a CSV file to upload.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/rain/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            window.location.href = '/rain/results?filename=' + result.filename;
+        } else {
+            const error = await response.json();
+            alert('Error uploading file: ' + error.detail);
+        }
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Error uploading file. Please try again.');
+    }
+}
