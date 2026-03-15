@@ -4,5 +4,5 @@ venv/
 
 *.pdf
 .tool-versions
-__pycache__/*
+**/__pycache__/**
 uploads/
