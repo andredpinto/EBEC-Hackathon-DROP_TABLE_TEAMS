@@ -12,4 +12,5 @@ Our challenge was to create and train machine learning algorithms for different 
 Result - 1st place
 
 ## Running the app
-Install the requirements in requirements.txt and run main.py
+Install the requirements in requirements.txt and run main.py.
+If you want to train the models yourself or look at the way they were configured and how the data was preprocessed, find relevant files in the utils folder (mainly train.py).
